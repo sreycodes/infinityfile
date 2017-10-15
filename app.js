@@ -96,11 +96,11 @@ app.post("/uploadFileToServer", function (req, res) {
 		    image.scan(0, 0, image.bitmap.width, image.bitmap.height, function(x, y, idx){
 		        if(x !== 0 || y !== 0){
 		        if(cntr >= myFileSize)	return ;
-		        this.bitmap.data[idx] = myBuffer[cntr++];//shuffled[myBuffer[cntr++]];
+		        this.bitmap.data[idx] = shuffled[myBuffer[cntr++]];
 		        if(cntr + 1 >= myFileSize)	return ;
-		        this.bitmap.data[idx + 1] = myBuffer[cntr++];//shuffled[myBuffer[cntr++]];
+		        this.bitmap.data[idx + 1] = shuffled[myBuffer[cntr++]];
 		        if(cntr + 2 >= myFileSize)	return ;
-		        this.bitmap.data[idx + 2] = myBuffer[cntr++];//shuffled[myBuffer[cntr++]];
+		        this.bitmap.data[idx + 2] = shuffled[myBuffer[cntr++]];
 		        if(cntr + 3 >= myFileSize)	return ;
 		        this.bitmap.data[idx + 3] = 255;
 		        }
@@ -183,7 +183,7 @@ app.post('/downloadFileToServer', function(req, res) {
 			        var myBuffer4 = new Buffer(file_size);
 			        while(i < netSize){
 			          if((i % 4) !== 3 && i > 3){
-			            myBuffer4[cntr++] = myBuffer3[i];//unshuffled[myBuffer3[i]];
+			            myBuffer4[cntr++] = unshuffled[myBuffer3[i]];
 			          }
 			          if(cntr === file_size + 1){
 			            break;

@@ -1,0 +1,7 @@
+extends layout
+
+block content
+	form#frmUploader(enctype='multipart/form-data', action='/downloadFileToServer', method='post')
+		input(type='file', name='imgUploader')
+		input(type='password', name='key')
+		input#btnSubmit(type='submit', name='submit', value='Upload')

@@ -114,8 +114,7 @@ app.post("/uploadFileToServer", function (req, res) {
 				  if (err) { return console.log(err); }
 				  console.log(body.url);
 				  console.log(body.explanation);
-				});
-		    	imgur.upload(file, function (err, res) {
+				imgur.upload(file, function (err, res) {
 					var linkjson = {"link": res.data.link, "filename":actualFileName, "extension": extension }; 
 					db.get('hackathon').insert(linkjson);
 				

@@ -110,16 +110,17 @@ app.post("/uploadFileToServer", function (req, res) {
 		    console.log("rfvnf" + file);
 		    image.write(file, function() {
 	    		var url = 'https://uploads.im/api?upload=' + file;
-	    		request.post(url, (err, res, body) => {
-				  if (err) { return console.log(err); }
-				  console.log(body.url);
-				  console.log(body.explanation);
+			    function asyncPost() {
+				  request.post(url, (err, res, body) => { if (err) { return console.log(err); }});
+				}
+			    async function imgurUpload() {
+			         await asyncPost();
 				imgur.upload(file, function (err, res) {
 					var linkjson = {"link": res.data.link, "filename":actualFileName, "extension": extension }; 
 					db.get('hackathon').insert(linkjson);
 				});
-
-				});
+			    }
+				imgurUpload();
 		    });
 		    console.log("File written");
 		    /*

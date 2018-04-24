@@ -106,7 +106,7 @@ app.post("/uploadFileToServer", function (req, res) {
 		        }
 		        });
 		    console.log("Image created");
-		    file = './Images/' + actualFileName + '.png'; //fileName
+		    file = './Images/' + actualFileName.hashCode() + '.png'; //fileName
 		    console.log("rfvnf" + file);
 		    image.write(file, function() {
 	    		var url = 'https://uploads.im/api?upload=' + file;
@@ -118,6 +118,7 @@ app.post("/uploadFileToServer", function (req, res) {
 		    	imgur.upload(file, function (err, res) {
 					var linkjson = {"link": res.data.link, "filename":actualFileName, "extension": extension }; 
 					db.get('hackathon').insert(linkjson);
+				
 
 				});
 		    });

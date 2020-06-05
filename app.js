@@ -5,8 +5,8 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var imgur = require('imgur-node-api');
-var download = require('download-file');
 var request = require('request');
+require('dotenv').config();
 
 var Jimp = require("jimp");
 var fs = require("fs");
@@ -14,10 +14,10 @@ var shuffleSeed = require("shuffle-seed");
 
 var mongo = require('mongodb');
 var monk = require('monk');
-var db = monk('localhost:27017/hackathon');
+var db = monk('mongodb://${process.env.DBUSER}:${process.env.DBPASSWORD}@ds055772.mlab.com:55772/fileuploadinfo');
 
 var multer = require('multer');
-imgur.setClientID('e9edb3ed9882935');
+imgur.setClientID(process.env.CLIENTID);
 
 var Storage = multer.diskStorage({
 	destination: function (req, file, callback) {

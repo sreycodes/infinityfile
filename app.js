@@ -20,12 +20,12 @@ var multer = require('multer');
 imgur.setClientID('e9edb3ed9882935');
 
 var Storage = multer.diskStorage({
-    destination: function (req, file, callback) {
-        callback(null, "./Images");
-    },
-    filename: function (req, file, callback) {
-    	callback(null, file.originalname);
-    }
+	destination: function (req, file, callback) {
+		callback(null, "./Images");
+	},
+	filename: function (req, file, callback) {
+		callback(null, file.originalname);
+	}
 });
 
 var upload = multer({ storage: Storage }).single('imgUploader');
@@ -36,8 +36,11 @@ var users = require('./routes/users');
 var app = express();
 
 app.use(function(req,res,next){
-    req.db = db;
-    next();
+	req.db = db;
+	db.get('hackathon').find({}, (rows) => {
+		console.log(rows)
+	})
+	next();
 });
 
 // view engine setup
@@ -56,81 +59,91 @@ app.use('/', index);
 app.use('/users', users);
 
 app.post("/uploadFileToServer", function (req, res) {
-	console.log("nikg");
+	console.log("At upload file route")
 	var file = '';
 	var actualFileName = '';
 	var extension = '';
-    upload(req, res, function (err) {
-    	if (err) {
-            return res.end(err+"");
-        } else {
+	upload(req, res, function (err) {
+		if (err) {
+			return res.end(err+"");
+		} else {
+			console.log("Second callback")
+			var fileUploaded = req.file;
+			actualFileName = req.file.filename;
+			var encryptionKey = req.body.key;
+			extension = actualFileName.substring(actualFileName.lastIndexOf("."));
+			actualFileName = actualFileName.substring(0, actualFileName.lastIndexOf(extension));
 
-    		var fileUploaded = req.file;
-    		actualFileName = req.file.filename;
-    		var encryptionKey = req.body.key;
-    		extension = actualFileName.substring(actualFileName.lastIndexOf("."));
-    		actualFileName = actualFileName.substring(0, actualFileName.lastIndexOf(extension));
-
-    		var a = [];
-    		for(var i = 0; i < 256; i = i + 1){
-      			a[i] = i;    
-    		}
-    		// console.log(a);
+			var a = [];
+			for(var i = 0; i < 256; i = i + 1){
+				a[i] = i;    
+			}
+			// console.log(a);
 			var shuffled = shuffleSeed.shuffle(a, encryptionKey); //password
-			console.log(shuffled);
+			console.log("Shuffled: " + shuffled);
+			var myBuffer = fs.readFileSync('./Images/' + req.file.filename); //fileUploaded
+			// console.log("In the buffer array " + myBuffer);
+			console.log("Buffer length: " + myBuffer.byteLength);
 
-		    console.log("Started");
-		    var myBuffer = fs.readFileSync('./Images/' + req.file.filename); //fileUploaded
-		    console.log("In the buffer array");
-		    console.log(myBuffer);
-		    var image = new Jimp(1000, 1250, 0x00000000, function(err, message){
-		        });
-		    console.log(image);
-		    console.log(myBuffer.byteLength);
-		    var myFileSize = myBuffer.byteLength;
-		    var cntr = 0;
-		    var first_id = image.getPixelIndex(0, 0);
-		    image.bitmap.data[first_id] = myFileSize / 65536;
-		    image.bitmap.data[first_id + 1] = (myFileSize % 65536)/256;
-		    image.bitmap.data[first_id + 2] = myFileSize % 256;
-		    image.scan(0, 0, image.bitmap.width, image.bitmap.height, function(x, y, idx){
-		        if(x !== 0 || y !== 0){
-		        if(cntr >= myFileSize)	return ;
-		        this.bitmap.data[idx] = shuffled[myBuffer[cntr++]];
-		        if(cntr + 1 >= myFileSize)	return ;
-		        this.bitmap.data[idx + 1] = shuffled[myBuffer[cntr++]];
-		        if(cntr + 2 >= myFileSize)	return ;
-		        this.bitmap.data[idx + 2] = shuffled[myBuffer[cntr++]];
-		        if(cntr + 3 >= myFileSize)	return ;
-		        this.bitmap.data[idx + 3] = 255;
-		        }
-		        });
-		    console.log("Image created");
-		    file = './Images/' + actualFileName + '.png'; //fileName
-		    console.log("rfvnf" + file);
-		    image.write(file, function() {
-	    		var url = 'https://uploads.im/api?upload=' + file;
-	    		request.post(url, (err, res, body) => {
-				  if (err) { return console.log(err); }
-				  console.log(body.url);
-				  console.log(body.explanation);
-				});
-		    	imgur.upload(file, function (err, res) {
-					var linkjson = {"link": res.data.link, "filename":actualFileName, "extension": extension }; 
-					db.get('hackathon').insert(linkjson);
+			// const png_header = Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+			// var image = Buffer.concat([png_header, myBuffer])
 
+			var image = new Jimp(1000, 1250, 0x00000000, function(err, image) {
+				var myFileSize = myBuffer.byteLength;
+				var buf_idx = 0
+				var first_id = image.getPixelIndex(0, 0);
+				image.bitmap.data[first_id] = myFileSize / 65536;
+				image.bitmap.data[first_id + 1] = (myFileSize % 65536)/256;
+				image.bitmap.data[first_id + 2] = myFileSize % 256;
+				image.scan(0, 0, image.bitmap.width, image.bitmap.height, function(x, y, idx) {
+					if(idx !== 0) {
+						// console.log("idx: " + idx + " and buf_idx: " + buf_idx)
+						if(buf_idx >= myFileSize) {
+							// console.log(idx)
+							return;
+						}
+						image.bitmap.data[idx] = shuffled[myBuffer[buf_idx++]];
+
+						if(buf_idx >= myFileSize) return;
+						image.bitmap.data[idx + 1] = shuffled[myBuffer[buf_idx++]];
+
+						if(buf_idx >= myFileSize) return;
+						image.bitmap.data[idx + 2] = shuffled[myBuffer[buf_idx++]];
+
+						if(buf_idx >= myFileSize) return;
+						image.bitmap.data[idx + 3] = 255;
+					}
 				});
-		    });
-		    console.log("File written");
-		    /*
-		    var myBuffer2 = image.bitmap.data;
-		    console.log(image.bitmap.data);
-		    fs.writeFile("./wow3.pdf", myBuffer2);
-		    */
-		    
+				console.log("Image created");
+				// console.log(JSON.stringify(image))
+				file = './Images/' + actualFileName + '.png'; //fileName
+				console.log("File will be written at " + file);
+				image.write(file, function() {
+					var url = 'https://uploads.im/api?upload=' + file;
+					request.post(url, (err, res, body) => {
+					  if (err) { 
+						return console.log(err); 
+					  }
+					});
+					imgur.upload(file, function (err, res) {
+						var linkjson = {"link": res.data.link, "filename": actualFileName, "extension": extension }; 
+						console.log(linkjson)
+						db.get('hackathon').insert(linkjson).then(() => {
+							console.log('Done')
+						});
+
+					});
+				});
+				console.log("File written");
+			/*
+			var myBuffer2 = image.bitmap.data;
+			console.log(image.bitmap.data);
+			fs.writeFile("./wow3.pdf", myBuffer2);
+			*/
+			});
 		}
 	});
-    
+	
 	/*fs.unlinkSync('./Images/' + actualFileName + extension, (err) => {
 		if (err) throw err;
 		res.end('Successful');
@@ -141,69 +154,55 @@ app.post("/uploadFileToServer", function (req, res) {
 
 app.post('/downloadFileToServer', function(req, res) {
 
-	var extension = '';
-	var actualFileName = req.body.filename;
-	console.log(req.body.link);
-	var filepath2 = "encrypted" + ".jpg";//(req.body.link.endsWith(".png")) ? ".png" : ".jpg";
-
-	db.collection("hackathon").findOne({"filename": req.body.filename}, function(err, res) {
-		if (err) throw err;
-		var options = {
-    	directory: "./Texts",
-    	filename: filepath2
-		};
-		extension = res.extension;
-	 	download(res.link, options, function(err){
-	    	if (err) {
-	    		throw err;
-	    	} else {
-	    		console.log("File Downloaded");
-
-	    		var filePath = path.join('./Texts', filepath2);
-
-				var a = [];
-			    for(var i = 0; i < 256; i = i + 1){
-			      a[i] = i;
-			    }
-			    var shuffled = shuffleSeed.shuffle(a, req.body.key); //password-retrieve
-			    var unshuffled = [];
-			    for(var i = 0; i < 256; i = i + 1){
-			      unshuffled[shuffled[i]] = i;
-			    }
-
-			    console.log("Reading from image and converting to text.");
-			    Jimp.read(filePath, function(err, image2){ //filename retrived from imgur
-			        var myBuffer3 = image2.bitmap.data;
-			        console.log(myBuffer3);
-			        var i = 0, cntr = 0;
-			        var first_id = image2.getPixelIndex(0, 0);
-			        var file_size = image2.bitmap.data[first_id]*65536 + image2.bitmap.data[first_id+1]*256 + image2.bitmap.data[first_id+2];
-			        console.log(file_size);
-			        var netSize = image2.bitmap.width * image2.bitmap.height * 4;
-			        var myBuffer4 = new Buffer(file_size);
-			        while(i < netSize){
-			          if((i % 4) !== 3 && i > 3){
-			            myBuffer4[cntr++] = unshuffled[myBuffer3[i]];
-			          }
-			          if(cntr === file_size + 1){
-			            break;
-			          }
-			          i++;
-			        }
-			        // console.log(image2.bitmap.data);
-			        // console.log(myBuffer3);
-			        console.log(myBuffer4);
-			        // console.log(image2.hash());
-			        fs.writeFile('./Texts/'+ actualFileName + extension, myBuffer4); //filename
-    			});
-			}	 
-
-	    });
-    	db.close();
-    	res.end("File read");
+	console.log(req.body)
+	var actualFileName = req.body.filename.replace(/\.[^/.]+$/, "");
+	var extension = /(?:\.([^.]+))?$/.exec(req.body.filename)[1]
+	var filePath = './Images/' + actualFileName + '.png';
+	console.log(filePath)
+	var a = [];
+	for(var i = 0; i < 256; i = i + 1){
+	  a[i] = i;
+	}
+	var shuffled = shuffleSeed.shuffle(a, req.body.key); //password-retrieve
+	var unshuffled = [];
+	for(var i = 0; i < 256; i = i + 1){
+	  unshuffled[shuffled[i]] = i;
+	}
+	db.get('hackathon').find({'filename': actualFileName, 'extension': '.' + extension}).then((rows) => {
+		console.log(rows)
+		row = rows[0]
+		link = row.link
+		console.log("Reading from image and converting to text.");
+		Jimp.read(link, function(err, image2){ //filename retrived from imgur
+			var myBuffer3 = image2.bitmap.data;
+			console.log(myBuffer3);
+			var i = 0, cntr = 0;
+			var first_id = image2.getPixelIndex(0, 0);
+			var file_size = image2.bitmap.data[first_id]*65536 + image2.bitmap.data[first_id+1]*256 + image2.bitmap.data[first_id+2];
+			console.log(file_size);
+			var netSize = image2.bitmap.width * image2.bitmap.height * 4;
+			var myBuffer4 = new Buffer(file_size);
+			while(i < netSize){
+			  if((i % 4) !== 3 && i > 3){
+				myBuffer4[cntr++] = unshuffled[myBuffer3[i]];
+			  }
+			  if(cntr === file_size + 1){
+				break;
+			  }
+			  i++;
+			}
+			// console.log(image2.bitmap.data);
+			// console.log(myBuffer3);
+			console.log(myBuffer4);
+			// console.log(image2.hash());
+			fs.writeFile('./Texts/'+ actualFileName + '.' + extension, myBuffer4, (err) => {
+			  if (err) throw err;
+			  console.log('The file has been saved!');
+			}); //filename
+			console.log("File written")
+		});
+		res.end();
 	});
-
-	res.end();
 });
 
 // catch 404 and forward to error handler

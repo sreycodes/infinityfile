@@ -13,8 +13,7 @@ var fs = require("fs");
 var shuffleSeed = require("shuffle-seed");
 
 var mongo = require('mongodb');
-var monk = require('monk');
-var db = monk('mongodb://${process.env.DBUSER}:${process.env.DBPASSWORD}@ds055772.mlab.com:55772/fileuploadinfo');
+var uri = 'mongodb://' + process.env.DBUSER + ':' + process.env.DBPASSWORD + '@ds055772.mlab.com:55772/fileuploadinfo';
 
 var multer = require('multer');
 imgur.setClientID(process.env.CLIENTID);
@@ -36,11 +35,11 @@ var users = require('./routes/users');
 var app = express();
 
 app.use(function(req,res,next){
-	req.db = db;
-	db.get('hackathon').find({}, (rows) => {
-		console.log(rows)
-	})
-	next();
+	mongo.MongoClient.connect(uri, function(err, client) {
+		if(err) throw err;
+		req.db = client.db('fileuploadinfo')
+		next();
+	});
 });
 
 // view engine setup
@@ -59,6 +58,8 @@ app.use('/', index);
 app.use('/users', users);
 
 app.post("/uploadFileToServer", function (req, res) {
+	var db = req.db
+	var linksCollection = db.collection('links')
 	console.log("At upload file route")
 	var file = '';
 	var actualFileName = '';
@@ -119,19 +120,14 @@ app.post("/uploadFileToServer", function (req, res) {
 				file = './Images/' + actualFileName + '.png'; //fileName
 				console.log("File will be written at " + file);
 				image.write(file, function() {
-					var url = 'https://uploads.im/api?upload=' + file;
-					request.post(url, (err, res, body) => {
-					  if (err) { 
-						return console.log(err); 
-					  }
-					});
 					imgur.upload(file, function (err, res) {
 						var linkjson = {"link": res.data.link, "filename": actualFileName, "extension": extension }; 
 						console.log(linkjson)
-						db.get('hackathon').insert(linkjson).then(() => {
+						linksCollection.insertOne(linkjson).then((err, res) => {
+							console.log(err)
+							console.log(res)
 							console.log('Done')
 						});
-
 					});
 				});
 				console.log("File written");
@@ -154,7 +150,8 @@ app.post("/uploadFileToServer", function (req, res) {
 
 app.post('/downloadFileToServer', function(req, res) {
 
-	console.log(req.body)
+	var db = req.db
+	var linksCollection = db.collection('links')
 	var actualFileName = req.body.filename.replace(/\.[^/.]+$/, "");
 	var extension = /(?:\.([^.]+))?$/.exec(req.body.filename)[1]
 	var filePath = './Images/' + actualFileName + '.png';
@@ -168,7 +165,7 @@ app.post('/downloadFileToServer', function(req, res) {
 	for(var i = 0; i < 256; i = i + 1){
 	  unshuffled[shuffled[i]] = i;
 	}
-	db.get('hackathon').find({'filename': actualFileName, 'extension': '.' + extension}).then((rows) => {
+	linksCollection.find({'filename': actualFileName, 'extension': '.' + extension}).toArray((err, rows) => {
 		console.log(rows)
 		row = rows[0]
 		link = row.link

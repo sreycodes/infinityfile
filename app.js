@@ -63,6 +63,21 @@ app.post("/register", function(req, res) {
 	});
 });
 
+app.post("/myfiles", function(req, res) {
+	let db = req.db
+	let linksCollection = db.collection('links')
+	let username = req.body.username
+	linksCollection.find({'uploader': username}).toArray(function(err, docs) {
+		if(err) {
+			res.sendStatus(500)
+			return;
+		} else {
+			res.status(200).json(docs)
+			return;
+		}
+	});
+});
+
 app.post("/uploadSingleFile", upload.single('singleFile'), function (req, res, next) {
 	let db = req.db
 	let linksCollection = db.collection('links')

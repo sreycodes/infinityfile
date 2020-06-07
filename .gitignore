@@ -4,3 +4,6 @@ Texts/
 node_modules/
 .DS_Store
 data/
+Downloads/
+Uploads/
+package-lock.json

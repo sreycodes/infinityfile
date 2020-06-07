@@ -7,20 +7,16 @@
   },
   "dependencies": {
     "body-parser": "^1.18.3",
-    "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
-    "download-file": "^0.1.5",
+    "dotenv": "^8.2.0",
     "express": "^4.16.3",
-    "imgur-node-api": "^0.1.0",
     "jQuery": "^1.7.4",
     "jade": "~1.11.0",
-    "jimp": "^0.4.0",
+    "jimp": "^0.13.0",
     "mongodb": "^2.2.36",
-    "monk": "^4.0.0",
-    "morgan": "~1.9.0",
+    "morgan": "^1.9.1",
     "multer": "^1.3.1",
     "request": "^2.88.0",
-    "serve-favicon": "~2.4.5",
     "shuffle-seed": "^1.1.6"
   }
 }
